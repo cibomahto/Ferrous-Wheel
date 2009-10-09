@@ -22,10 +22,10 @@ int numPixels;
 GSCapture video;
 
 // Start and end points for the detection line
-int startX = 183;
-int startY = 59;
-int endX = 61;
-int endY = 156;
+int startX = 230;
+int startY = 125;
+int endX = 68;
+int endY = 210;
 
 int threshold = 122; // Set the threshold value
 
@@ -58,14 +58,18 @@ void setup() {
   
   size(windowWidth, windowHeight);
   strokeWeight(5);
+  
   // Uses the default video input, see the reference if this causes an error
   video = new GSCapture(this, width, height, 24);
+  
   numPixels = video.width * video.height;
 //  noCursor();
   smooth();
   
-  myBus = new MidiBus(this, 0, 0); // Create a new MIDI device
+  MidiBus.list();
   
+//  myBus = new MidiBus(this, 20, 20); // Create a new MIDI device
+  myBus = new MidiBus(this, "VirMIDI [hw:1,0]", "VirMIDI [hw:1,0]"); // Create a new MIDI device  
     /**
     using-the-mousewheel-scrollwheel-in-processing taken from http://processinghacks.com/hacks:using-the-mousewheel-scrollwheel-in-processing
     @author Rick Companje
