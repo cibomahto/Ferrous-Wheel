@@ -54,6 +54,19 @@ class blob {
 java.util.List blobList = new LinkedList();
 
 
+void log(String message) {
+  println(message);
+  
+  try {
+    FileWriter file = new FileWriter("/home/ferrous/Desktop/log.txt", true);
+    file.write(message + "\n");
+    file.close();
+  }
+  catch (Exception e) {
+    println("error opening log file!");
+  }
+}
+
 void setup() {
   
   size(windowWidth, windowHeight);
@@ -69,7 +82,7 @@ void setup() {
   MidiBus.list();
   
 //  myBus = new MidiBus(this, 20, 20); // Create a new MIDI device
-  myBus = new MidiBus(this, "VirMIDI [hw:1,0]", "VirMIDI [hw:1,0]"); // Create a new MIDI device  
+  myBus = new MidiBus(this, "VirMIDI [hw:1,0]", "VirMIDI [hw:2,0]"); // Create a new MIDI device  
     /**
     using-the-mousewheel-scrollwheel-in-processing taken from http://processinghacks.com/hacks:using-the-mousewheel-scrollwheel-in-processing
     @author Rick Companje
@@ -83,7 +96,7 @@ void setup() {
 
 void mouseWheel(int delta) {
   threshold += delta;
-  println("threshold=" + threshold); 
+  log("threshold=" + threshold); 
 }
 
 
@@ -149,6 +162,7 @@ void getLine(int x0, int y0, int x1, int y1) {
 }
 
 void draw() {
+ try {
   int channel = 0;
   int velocity = 127;
   
@@ -158,8 +172,26 @@ void draw() {
     float pixelBrightness; // Declare variable to store a pixel's color
     // Turn each pixel in the video frame black or white depending on its brightness
     loadPixels();
-    for (int i = 0; i < numPixels; i++) {
-      color pix = video.pixels[i];
+
+    for(int i = 0; i < numPixels; i++) {
+      pixels[i] = video.pixels[i];
+    }
+          
+//      pixelBrightness = brightness(video.pixels[i]);
+//      if (pixelBrightness > threshold) { // If the pixel is brighter than the
+//        pixels[i] = white; // threshold value, make it white
+//      } 
+//      else { // Otherwise,
+//        pixels[i] = black; // make it black
+//      }
+
+    
+    // get the current sense line
+    getLine(startY, startX, endY, endX);
+
+    // DO thresholding on the current line only
+    for (int i = 0; i < lineData.length; i++) {
+      color pix = lineData[i];
       
       float p_red = red(pix);
       float p_green = green(pix);      
@@ -171,24 +203,12 @@ void draw() {
           && (brightness(pix) > 10)
           && (brightness(pix) < 245))
           {
-            pixels[i] = white;
+            lineData[i] = white;
           }
           else {
-            pixels[i] = black;
+            lineData[i] = black;
           }
-          
-//      pixelBrightness = brightness(video.pixels[i]);
-//      if (pixelBrightness > threshold) { // If the pixel is brighter than the
-//        pixels[i] = white; // threshold value, make it white
-//      } 
-//      else { // Otherwise,
-//        pixels[i] = black; // make it black
-//      }
     }
-    
-    // get the current sense line
-    getLine(startY, startX, endY, endX);
-
     
     for(int i = 0; i < lineData.length; i++) {
       pixels[i+1+windowWidth*(windowHeight - 4)] = lineData[i];
@@ -200,7 +220,7 @@ void draw() {
     for (Iterator it = blobList.iterator(); it.hasNext(); ) {
       blob currentBlob = (blob)it.next();
       
-//      println("marking blob " + currentBlob.center + " invalid");
+//      log("marking blob " + currentBlob.center + " invalid");
       currentBlob.current =false;
     }
 
@@ -236,7 +256,7 @@ void draw() {
 
             myBus.sendNoteOn(channel, pitch, velocity); // Send a Midi noteOn
             
-            println("Found new blob: center=" + center + " width=" + width + " pitch=" + pitch);
+            log("Found new blob: center=" + center + " width=" + width + " pitch=" + pitch);
           }
 
         }
@@ -255,7 +275,7 @@ void draw() {
       blob currentBlob = (blob)it.next();
       
       if( currentBlob.current == false ) {
-        println("removing invalid blob " + currentBlob.center);
+        log("removing invalid blob " + currentBlob.center);
         
         it.remove();        
        
@@ -268,6 +288,11 @@ void draw() {
 //    delay(200);
 //    myBus.sendNoteOff(channel, pitch, velocity); // Send a Midi nodeOff
   }
+ }
+ catch (Exception e)
+ {
+   log("Caught an exception: " + e);
+ }
 }
 
 // Right-click to set start of line, left-click to set end
@@ -276,11 +301,11 @@ void mousePressed()
    if (mouseButton == LEFT) {
     startX = mouseX;
     startY = mouseY;
-    println("startX=" + startX + " startY=" + startY);
+    log("startX=" + startX + " startY=" + startY);
   } else if (mouseButton == RIGHT) {
     endX = mouseX;
     endY = mouseY;
-    println("nedX=" + endX + " endY=" + endY);
+    log("nedX=" + endX + " endY=" + endY);
   }
 }
 
