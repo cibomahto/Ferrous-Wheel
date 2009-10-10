@@ -22,12 +22,12 @@ int numPixels;
 GSCapture video;
 
 // Start and end points for the detection line
-int startX = 230;
-int startY = 125;
-int endX = 68;
-int endY = 210;
+int startX = 181;
+int startY = 55;
+int endX = 60;
+int endY = 118;
 
-int threshold = 122; // Set the threshold value
+int threshold = 104; // Set the threshold value
 
 int lineData [ ]; // Data along the detection line
 
@@ -159,13 +159,31 @@ void draw() {
     // Turn each pixel in the video frame black or white depending on its brightness
     loadPixels();
     for (int i = 0; i < numPixels; i++) {
-      pixelBrightness = brightness(video.pixels[i]);
-      if (pixelBrightness > threshold) { // If the pixel is brighter than the
-        pixels[i] = white; // threshold value, make it white
-      } 
-      else { // Otherwise,
-        pixels[i] = black; // make it black
-      }
+      color pix = video.pixels[i];
+      
+      float p_red = red(pix);
+      float p_green = green(pix);      
+      float p_blue = blue(pix);
+      
+      if( ( abs(p_red - p_green) > threshold ||
+            abs(p_red - p_blue) > threshold ||
+            abs(p_green - p_blue) > threshold ) 
+          && (brightness(pix) > 10)
+          && (brightness(pix) < 245))
+          {
+            pixels[i] = white;
+          }
+          else {
+            pixels[i] = black;
+          }
+          
+//      pixelBrightness = brightness(video.pixels[i]);
+//      if (pixelBrightness > threshold) { // If the pixel is brighter than the
+//        pixels[i] = white; // threshold value, make it white
+//      } 
+//      else { // Otherwise,
+//        pixels[i] = black; // make it black
+//      }
     }
     
     // get the current sense line
@@ -211,7 +229,7 @@ void draw() {
           }
           
           // Otherwise, add it to the list.
-          if( found == false ) {
+          if( found == false && blobList.size() < 9) {
             int pitch = (int)(((float)center/lineData.length)*midiRange) + midiStart;
             
             blobList.add(new blob(center, width, pitch));
