@@ -64,7 +64,7 @@ void log(String message) {
   
   try {
     FileWriter file = new FileWriter("/home/ferrous/Desktop/log.txt", true);
-    file.write(message + "\n");
+    file.write(millis() + " " + message + "\n");
     file.close();
   }
   catch (Exception e) {
