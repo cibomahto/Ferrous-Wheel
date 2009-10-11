@@ -41,6 +41,8 @@ MidiBus myBus;            // MIDI output device
 
 int lineData [ ];         // Data along the detection line
 
+String logFileName;       // Name of the log file
+
 // Representation of a found magnet
 class blob {
   public blob(int center_, int width_, int pitch_) {
@@ -62,8 +64,9 @@ java.util.List blobList = new LinkedList();
 void log(String message) {
   println(message);
   
+  
   try {
-    FileWriter file = new FileWriter("/home/ferrous/Desktop/log.txt", true);
+    FileWriter file = new FileWriter(logFileName, true);
     file.write(millis() + " " + message + "\n");
     file.close();
   }
@@ -74,7 +77,9 @@ void log(String message) {
 
 
 void setup() {
-  log("STARTUP date=" + year() + "/" + month() + "/" + day() + " time=" + hour() + ":" + minute() + ":" + second());
+  logFileName = "/home/ferrous/Desktop/logs/" + year() + "." + month() + "." + day() + "." +hour() + ":" + minute() + ".txt";
+  
+  log("START date=" + year() + "/" + month() + "/" + day() + " time=" + hour() + ":" + minute() + ":" + second());
 
   size(windowWidth, windowHeight);
   strokeWeight(5);
@@ -90,10 +95,10 @@ void setup() {
   // Calculate the total number of pixels on the screen
   numPixels = video.width * video.height;
   
-//  MidiBus.list();
+  MidiBus.list();
   
-//  myBus = new MidiBus(this, 20, 20); // Create a new MIDI device
-  myBus = new MidiBus(this, "VirMIDI [hw:1,0]", "VirMIDI [hw:1,0]"); // Create a new MIDI device  
+  myBus = new MidiBus(this); // Create a new MIDI device
+//  myBus = new MidiBus(this, "VirMIDI [hw:1,0]", "VirMIDI [hw:1,0]"); // Create a new MIDI device  
     /**
       using-the-mousewheel-scrollwheel-in-processing taken from:
       http://processinghacks.com/hacks:using-the-mousewheel-scrollwheel-in-processing
