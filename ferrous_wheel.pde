@@ -19,6 +19,11 @@ int numPixels;
 
 // Configuration options
 
+// White balance correction factors for red and blue channels
+// determine experimentally by measuring distance from green 
+float redCorrection = .88;
+float blueCorrection = 1.13;
+
 // Start and end points for the detection line
 int startX = 169;
 int startY = 64;
@@ -64,14 +69,13 @@ java.util.List blobList = new LinkedList();
 void log(String message) {
   println(message);
   
-  
   try {
     FileWriter file = new FileWriter(logFileName, true);
     file.write(millis() + " " + message + "\n");
     file.close();
   }
   catch (Exception e) {
-    println("error opening log file!");
+    println("Error opening log file!");
   }
 }
 
@@ -95,10 +99,12 @@ void setup() {
   // Calculate the total number of pixels on the screen
   numPixels = video.width * video.height;
   
-  MidiBus.list();
+  // Choose the first MIDI device that is available
+  // This isn't 'right' but it should work as long as VirMIDI shows up first in the list.
+  String midiDevice = MidiBus.returnList()[0][0];
+  log("MIDI device=\"" + midiDevice + "\"");
   
-  myBus = new MidiBus(this); // Create a new MIDI device
-//  myBus = new MidiBus(this, "VirMIDI [hw:1,0]", "VirMIDI [hw:1,0]"); // Create a new MIDI device  
+  myBus = new MidiBus(this, midiDevice, midiDevice); // Create a new MIDI device  
     /**
       using-the-mousewheel-scrollwheel-in-processing taken from:
       http://processinghacks.com/hacks:using-the-mousewheel-scrollwheel-in-processing
@@ -207,9 +213,9 @@ void draw() {
     for (int i = 0; i < lineData.length; i++) {
       color pix = lineData[i];
       
-      float p_red = red(pix);
+      float p_red = red(pix)*redCorrection;
       float p_green = green(pix);      
-      float p_blue = blue(pix);
+      float p_blue = blue(pix)*blueCorrection;
       
       if( ( abs(p_red - p_green) > threshold ||
             abs(p_red - p_blue) > threshold ||
