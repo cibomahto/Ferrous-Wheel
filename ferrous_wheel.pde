@@ -25,18 +25,23 @@ float redCorrection = .88;
 float blueCorrection = 1.13;
 
 // Start and end points for the detection line
-int startX = 169;
-int startY = 64;
-int endX = 59;
-int endY = 120;
+int startX = 195;
+int startY = 87;
+int endX = 83;
+int endY = 137;
 
 int threshold = 104;      // Set the threshold value
 
 // MIDI info
 int midiChannel = 0;      // MIDI channel to play notes on
-int midiRange = 13;       // Number of notes in the MIDI scale
-int midiStart = 42;       // First note
+//int midiRange = 13;       // Number of notes in the MIDI scale
+//int midiStart = 42;       // First note
 int midiVelocity = 127;   // Velocity (change this based on blob size you say?)
+
+// Use a pentatonic scale
+int midiNotes[] = {42, 44, 46, 49, 51,
+                   54, 56, 58, 61, 63,
+                   66, 68 };
 
 int maxNotes = 9;     // Max # of notes allowed (don't overload the synth) (not implemented correctly)
 
@@ -241,7 +246,7 @@ void draw() {
       blob currentBlob = (blob)it.next();
       
 //      log("marking blob " + currentBlob.center + " invalid");
-      currentBlob.current =false;
+      currentBlob.current = false;
     }
 
 
@@ -276,8 +281,9 @@ void draw() {
               log("DROPPED_NOTE center=" + center + " width=" + width);
             }
             else {
-              int pitch = (int)(((float)center/lineData.length)*midiRange) + midiStart;
-            
+//              int pitch = (int)(((float)center/lineData.length)*midiRange) + midiStart;
+              int pitch = midiNotes[(int)(((float)center/lineData.length)*midiNotes.length)];
+              
               blobList.add(new blob(center, width, pitch));
 
               myBus.sendNoteOn(midiChannel, pitch, midiVelocity); // Send a Midi noteOn
