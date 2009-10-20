@@ -7,6 +7,7 @@
 // Libraries
 import codeanticode.gsvideo.*;    // GSVideo for motion capture
 import themidibus.*;              // MIDI Bus for output
+import proxml.*;                  // XML settings file
 
 // Constants
 int windowHeight = 240;
@@ -24,34 +25,37 @@ int numPixels;
 float redCorrection = .88;
 float blueCorrection = 1.13;
 
+int threshold = 104;      // Set the brightness threshold value
+
 // Start and end points for the detection line
 int startX = 195;
 int startY = 87;
 int endX = 83;
 int endY = 137;
 
-int threshold = 104;      // Set the threshold value
-
 // MIDI info
 int midiChannel = 0;      // MIDI channel to play notes on
-//int midiRange = 13;       // Number of notes in the MIDI scale
-//int midiStart = 42;       // First note
 int midiVelocity = 127;   // Velocity (change this based on blob size you say?)
+
+int maxNotes = 9;     // Max # of notes allowed (don't overload the synth) (not implemented correctly)
 
 // Use a pentatonic scale
 int midiNotes[] = {42, 44, 46, 49, 51,
                    54, 56, 58, 61, 63,
                    66, 68 };
 
-int maxNotes = 9;     // Max # of notes allowed (don't overload the synth) (not implemented correctly)
 
 // Global objects
 GSCapture video;          // The video source
 MidiBus myBus;            // MIDI output device
 
+
 int lineData [ ];         // Data along the detection line
 
 String logFileName;       // Name of the log file
+
+java.util.List blobList = new LinkedList();
+
 
 // Representation of a found magnet
 class blob {
@@ -66,8 +70,6 @@ class blob {
   int pitch;
   boolean current;
 }
-
-java.util.List blobList = new LinkedList();
 
 
 // Log a message to both the console and a file
@@ -85,14 +87,88 @@ void log(String message) {
 }
 
 
-void setup() {
-  logFileName = "/home/ferrous/Desktop/logs/" + year() + "." + month() + "." + day() + "." +hour() + ":" + minute() + ".txt";
+// If possible, read in the settings file.
+void readSettings(){
+  proxml.XMLInOut xmlInOut = new XMLInOut(this);
   
-  log("START date=" + year() + "/" + month() + "/" + day() + " time=" + hour() + ":" + minute() + ":" + second());
+   try{
+     xmlInOut.loadElement("settings.xml"); 
+   }catch(Exception e){
+     log("LOAD_SETTINGS_FAIL text=\"" + e + "\"");
+   }
 
+}
+
+
+// Stupid xml callback, launched by readSettings()
+void xmlEvent(proxml.XMLElement _x) {
+  proxml.XMLElement settings = _x;
+  proxml.XMLElement setting;
+
+  for(int i = 0; i < settings.countChildren();i++){
+    setting = settings.getChild(i);
+    println("testing " + setting.getElement());
+    if( setting.getElement().equals("sense_line")) {
+      startX = setting.getIntAttribute("startX");
+      startY = setting.getIntAttribute("startY");
+      endX = setting.getIntAttribute("endX");
+      endY = setting.getIntAttribute("endY");      
+      log("LOAD_SETTINGS startX=" + startX + " startY=" + startY + " endX=" + endX + " endY=" + endY);
+    }
+    else if( setting.getElement().equals("thresholding")) {
+      threshold = setting.getIntAttribute("threshold");
+      blueCorrection = setting.getFloatAttribute("blueCorrection");
+      redCorrection = setting.getFloatAttribute("redCorrection");
+      log("LOAD_SETTINGS threshold=" + threshold + " blueCorrection=" + blueCorrection + " redCorrection=" + redCorrection);
+    }
+  }
+}
+
+
+// Write out the settings file based on the global variables
+void writeSettings(){
+  // xml element to store and load the configuration settings
+  proxml.XMLElement settings = new proxml.XMLElement("settings");
+  proxml.XMLInOut xmlInOut = new XMLInOut(this);
+  
+  // Sense line: Where to look in the image
+  proxml.XMLElement sense_line = new proxml.XMLElement("sense_line");
+  sense_line.addAttribute("startX", startX);
+  sense_line.addAttribute("startY", startY);
+  sense_line.addAttribute("endX", endX);
+  sense_line.addAttribute("endY", endY);
+  settings.addChild(sense_line);
+
+  // Thresholding: How to interpret brightness levels
+  proxml.XMLElement thresholding = new proxml.XMLElement("thresholding");
+  thresholding.addAttribute("threshold", threshold);
+  thresholding.addAttribute("redCorrection", redCorrection);
+  thresholding.addAttribute("blueCorrection", blueCorrection);
+  settings.addChild(thresholding);
+  
+  xmlInOut.saveElement(settings,"settings.xml");
+}
+
+
+void setup() {
+  // Construct a name for the current log file
+  logFileName = "/home/matt/Desktop/logs/"
+                + year() + "." + month() + "." + day()
+                + "." +hour() + ":" + minute() + ".txt";
+  
+  log("START date=" + year() + "/" + month() + "/" + day()
+      + " time=" + hour() + ":" + minute() + ":" + second());
+
+  // Set up the window
   size(windowWidth, windowHeight);
   strokeWeight(5);
   
+
+  println("reading settings");
+  // Try to load the settings file
+  readSettings();
+  
+  println("starting video");
   // Uses the default video input, see the reference if this causes an error
   // For the installation, the on-board camera is disabled in the BIOS so it can't
   // get in the way.
@@ -103,28 +179,23 @@ void setup() {
   
   // Calculate the total number of pixels on the screen
   numPixels = video.width * video.height;
-  
+
+  println("opening midi");  
   // Choose the first MIDI device that is available
   // This isn't 'right' but it should work as long as VirMIDI shows up first in the list.
-  String midiDevice = MidiBus.returnList()[0][0];
+  String midiDevice = MidiBus.availableInputs()[0];
   log("MIDI device=\"" + midiDevice + "\"");
   
   myBus = new MidiBus(this, midiDevice, midiDevice); // Create a new MIDI device  
-    /**
-      using-the-mousewheel-scrollwheel-in-processing taken from:
-      http://processinghacks.com/hacks:using-the-mousewheel-scrollwheel-in-processing
-      @author Rick Companje
-    */
+  
+  println("adding mousewheel");  
+    //  using-the-mousewheel-scrollwheel-in-processing taken from:
+    //  http://processinghacks.com/hacks:using-the-mousewheel-scrollwheel-in-processing
+    //  @author Rick Companje
     addMouseWheelListener(new java.awt.event.MouseWheelListener() { 
     public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) { 
       mouseWheel(evt.getWheelRotation());
     }});
-}
-
-
-void mouseWheel(int delta) {
-  threshold += delta;
-  log("THRESHOLD_UPDATE threshold=" + threshold); 
 }
 
 
@@ -201,15 +272,6 @@ void draw() {
     for(int i = 0; i < numPixels; i++) {
       pixels[i] = video.pixels[i];
     }
-          
-//      pixelBrightness = brightness(video.pixels[i]);
-//      if (pixelBrightness > threshold) { // If the pixel is brighter than the
-//        pixels[i] = white; // threshold value, make it white
-//      } 
-//      else { // Otherwise,
-//        pixels[i] = black; // make it black
-//      }
-
     
     // get the current sense line
     getLine(startY, startX, endY, endX);
@@ -281,7 +343,6 @@ void draw() {
               log("DROPPED_NOTE center=" + center + " width=" + width);
             }
             else {
-//              int pitch = (int)(((float)center/lineData.length)*midiRange) + midiStart;
               int pitch = midiNotes[(int)(((float)center/lineData.length)*midiNotes.length)];
               
               blobList.add(new blob(center, width, pitch));
@@ -315,11 +376,6 @@ void draw() {
         myBus.sendNoteOff(midiChannel, currentBlob.pitch, midiVelocity); // Send a Midi nodeOff
       }
     }
-
-   
-//    myBus.sendNoteOn(channel, pitch, velocity); // Send a Midi noteOn
-//    delay(200);
-//    myBus.sendNoteOff(channel, pitch, velocity); // Send a Midi nodeOff
   }
  }
  catch (Exception e)
@@ -334,10 +390,20 @@ void mousePressed()
    if (mouseButton == LEFT) {
     startX = mouseX;
     startY = mouseY;
-    log("START_UPDATE x=" + startX + " y=" + startY);
+    log("UPDATE_SETTINGS startX=" + startX + " startY=" + startY);
+    writeSettings();
   } else if (mouseButton == RIGHT) {
     endX = mouseX;
     endY = mouseY;
-    log("END_UPDATE x=" + endX + " y=" + endY);
+    log("UPDAT_SETTINGS endX=" + endX + " endY=" + endY);
+    writeSettings();
   }
+}
+
+
+// Update the brighness threshold when the mouse wheel is spun
+void mouseWheel(int delta) {
+  threshold += delta;
+  log("UPDATE_SETTINGS threshold=" + threshold);
+  writeSettings();
 }
