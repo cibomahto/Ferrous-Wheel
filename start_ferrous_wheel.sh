@@ -1,13 +1,16 @@
 #!/bin/bash
 
+# Move to the ferrous wheel directory
+cd /home/ferrous/sketchbook/ferrous_wheel/
+
 # Start the screensaver blocker (otherwise it blanks after 2 hours)
-/home/ferrous/sketchbook/ferrous_wheel/stop_screensaver.sh &
+./stop_screensaver.sh &
 
 # Launch the synthesizer (zynaddsubfx)
-zynaddsubfx -r 22050 -b 1024 -o 1024 -A &
+zynaddsubfx -r 22050 -b 1024 -o 1024 -A -L "/usr/share/zynaddsubfx/banks/SynthPiano/0004-Fantasy Bell.xiz"&
 
 # Launch the ferrous wheel program
-cd /home/ferrous/sketchbook/ferrous_wheel/application.linux/
+cd application.linux/
 ./ferrous_wheel &
 
 # Sleep for a bit to let everything start up
