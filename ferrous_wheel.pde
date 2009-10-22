@@ -49,7 +49,6 @@ int midiNotes[] = {42, 44, 46, 49, 51,
 GSCapture video;          // The video source
 MidiBus myBus;            // MIDI output device
 
-
 int lineData [ ];         // Data along the detection line
 
 String logFileName;       // Name of the log file
@@ -152,7 +151,7 @@ void writeSettings(){
 
 void setup() {
   // Construct a name for the current log file
-  logFileName = "/home/matt/Desktop/logs/"
+  logFileName = "/home/ferrous/Desktop/logs/"
                 + year() + "." + month() + "." + day()
                 + "." +hour() + ":" + minute() + ".txt";
   
