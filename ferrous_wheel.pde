@@ -162,24 +162,17 @@ void setup() {
   size(windowWidth, windowHeight);
   strokeWeight(5);
   
-
-  println("reading settings");
   // Try to load the settings file
   readSettings();
   
-  println("starting video");
   // Uses the default video input, see the reference if this causes an error
   // For the installation, the on-board camera is disabled in the BIOS so it can't
   // get in the way.
   video = new GSCapture(this, width, height, 24);
-
-  // Dunno!
-  smooth();
   
   // Calculate the total number of pixels on the screen
   numPixels = video.width * video.height;
 
-  println("opening midi");  
   // Choose the first MIDI device that is available
   // This isn't 'right' but it should work as long as VirMIDI shows up first in the list.
   String midiDevice = MidiBus.availableInputs()[0];
@@ -187,14 +180,13 @@ void setup() {
   
   myBus = new MidiBus(this, midiDevice, midiDevice); // Create a new MIDI device  
   
-  println("adding mousewheel");  
-    //  using-the-mousewheel-scrollwheel-in-processing taken from:
-    //  http://processinghacks.com/hacks:using-the-mousewheel-scrollwheel-in-processing
-    //  @author Rick Companje
-    addMouseWheelListener(new java.awt.event.MouseWheelListener() { 
-    public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) { 
-      mouseWheel(evt.getWheelRotation());
-    }});
+  //  using-the-mousewheel-scrollwheel-in-processing taken from:
+  //  http://processinghacks.com/hacks:using-the-mousewheel-scrollwheel-in-processing
+  //  @author Rick Companje
+  addMouseWheelListener(new java.awt.event.MouseWheelListener() { 
+  public void mouseWheelMoved(java.awt.event.MouseWheelEvent evt) { 
+    mouseWheel(evt.getWheelRotation());
+  }});
 }
 
 
@@ -262,40 +254,55 @@ void getLine(int x0, int y0, int x1, int y1) {
 void draw() {
  try {
   if (video.available()) {
-    video.read();
-    video.loadPixels();
-    float pixelBrightness; // Declare variable to store a pixel's color
-    // Turn each pixel in the video frame black or white depending on its brightness
+    
+    video.read();        // Grab a frame of video
+    image(video,0,0);    // Copy the video to the display screen
+
+    // Load the pixel array
+//    video.loadPixels();
     loadPixels();
 
-    for(int i = 0; i < numPixels; i++) {
-      pixels[i] = video.pixels[i];
-    }
+//    // Copy the video to the display screen (TODO: is there a fast way to do this?)
+//    for(int i = 0; i < numPixels; i++) {
+//      pixels[i] = video.pixels[i];
+//    }
     
-    // get the current sense line
+    // Grab the current sense line out of the image
     getLine(startY, startX, endY, endX);
 
-    // DO thresholding on the current line only
+    // Look for colored magnets and black ledger lines
     for (int i = 0; i < lineData.length; i++) {
-      color pix = lineData[i];
       
+      // Grab the color data
+      color pix = lineData[i];
       float p_red = red(pix)*redCorrection;
       float p_green = green(pix);      
       float p_blue = blue(pix)*blueCorrection;
       
+      // Look for things that might be the black ledger line
+      // Just look for something that is sufficiently dark.
+      if( brightness(pix) < 10) {
+        lineData[i] = color(255,0,0);
+      }
+      // Look for things that have color and might be a magnet
+      // We define that as having a difference between any two channels (red, green or blue)
+      // greater than a set threshold.  This was designed as a first-pass filter against noisy
+      // pixel data, but a better approach would be to average larger areas and then operate on that.
       if( ( abs(p_red - p_green) > threshold ||
             abs(p_red - p_blue) > threshold ||
             abs(p_green - p_blue) > threshold ) 
           && (brightness(pix) > 10)
           && (brightness(pix) < 245))
-          {
-            lineData[i] = white;
-          }
-          else {
-            lineData[i] = black;
-          }
+      {
+        lineData[i] = white;
+      }
+      else {
+        lineData[i] = black;
+      }
+      
     }
-    
+
+    // Draw the thresholded line at the bottom of the screen, just for visual identification.
     for(int i = 0; i < lineData.length; i++) {
       pixels[i+1+windowWidth*(windowHeight - 4)] = lineData[i];
       pixels[i+1+windowWidth*(windowHeight - 3)] = lineData[i];
@@ -305,8 +312,6 @@ void draw() {
     // Refresh the blob list by marking everything old and then searching for current/new ones
     for (Iterator it = blobList.iterator(); it.hasNext(); ) {
       blob currentBlob = (blob)it.next();
-      
-//      log("marking blob " + currentBlob.center + " invalid");
       currentBlob.current = false;
     }
 
@@ -345,9 +350,7 @@ void draw() {
               int pitch = midiNotes[(int)(((float)center/lineData.length)*midiNotes.length)];
               
               blobList.add(new blob(center, width, pitch));
-
-              myBus.sendNoteOn(midiChannel, pitch, midiVelocity); // Send a Midi noteOn
-            
+              myBus.sendNoteOn(midiChannel, pitch, midiVelocity); // Send a Midi noteOn            
               log("NOTE_ON center=" + center + " width=" + width + " pitch=" + pitch);
             }
           }
@@ -361,9 +364,10 @@ void draw() {
         noteStart = i;
       }
     }
-    
-    updatePixels();
 
+    updatePixels(); 
+
+    // Search through the list of known blobs, and remove ones that have disappeared
     for (Iterator it = blobList.iterator(); it.hasNext(); ) {
       blob currentBlob = (blob)it.next();
       
