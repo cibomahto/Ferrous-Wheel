@@ -95,7 +95,6 @@ void readSettings(){
    }catch(Exception e){
      log("LOAD_SETTINGS_FAIL text=\"" + e + "\"");
    }
-
 }
 
 
@@ -106,7 +105,7 @@ void xmlEvent(proxml.XMLElement _x) {
 
   for(int i = 0; i < settings.countChildren();i++){
     setting = settings.getChild(i);
-    println("testing " + setting.getElement());
+    
     if( setting.getElement().equals("sense_line")) {
       startX = setting.getIntAttribute("startX");
       startY = setting.getIntAttribute("startY");
@@ -259,13 +258,7 @@ void draw() {
     image(video,0,0);    // Copy the video to the display screen
 
     // Load the pixel array
-//    video.loadPixels();
     loadPixels();
-
-//    // Copy the video to the display screen (TODO: is there a fast way to do this?)
-//    for(int i = 0; i < numPixels; i++) {
-//      pixels[i] = video.pixels[i];
-//    }
     
     // Grab the current sense line out of the image
     getLine(startY, startX, endY, endX);
@@ -279,11 +272,6 @@ void draw() {
       float p_green = green(pix);      
       float p_blue = blue(pix)*blueCorrection;
       
-      // Look for things that might be the black ledger line
-      // Just look for something that is sufficiently dark.
-      if( brightness(pix) < 10) {
-        lineData[i] = color(255,0,0);
-      }
       // Look for things that have color and might be a magnet
       // We define that as having a difference between any two channels (red, green or blue)
       // greater than a set threshold.  This was designed as a first-pass filter against noisy
@@ -300,6 +288,11 @@ void draw() {
         lineData[i] = black;
       }
       
+      // Look for things that might be the black ledger line
+      // Just look for something that is sufficiently dark.
+      if( brightness(pix) < 15) {
+        lineData[i] = color(255,0,0);
+      }
     }
 
     // Draw the thresholded line at the bottom of the screen, just for visual identification.
