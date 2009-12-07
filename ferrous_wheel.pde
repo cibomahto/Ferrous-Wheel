@@ -236,8 +236,9 @@ void getLine(int x0, int y0, int x1, int y1) {
        }
        // plot
        lineData[n] = pixels[xDraw*windowWidth + yDraw];
-       pixels[xDraw*windowWidth + yDraw] = color(127);
-
+//       pixels[xDraw*windowWidth + yDraw] = color(127);
+       pixels[xDraw*windowWidth + yDraw] = color(255,0,0);
+       
        // next
        if (E > 0) {
            E += TwoDyTwoDx; //E += 2*Dy - 2*Dx;
@@ -290,7 +291,7 @@ void draw() {
       
       // Look for things that might be the black ledger line
       // Just look for something that is sufficiently dark.
-      if( brightness(pix) < 15) {
+      if( brightness(pix) < 30) {
         lineData[i] = color(255,0,0);
       }
     }
