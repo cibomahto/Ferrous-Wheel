@@ -323,14 +323,15 @@ void draw() {
     int noteStart = 0;
     boolean counting = false;
     for(int i = 0; i < lineData.length; i++) {
-      if (counting && lineData[i] == white) {
+      if (counting && lineData[i] == black) {
         // Done counting
         counting = false;
+        
         int center = (i - noteStart)/2 + noteStart;
         int width = i - noteStart;
         
-        if (width > 2) { 
-         
+        if (width > 2)
+        {  
           boolean found = false;
           
           // If blob part of list, mark it current.
@@ -350,7 +351,7 @@ void draw() {
               log("DROPPED_NOTE center=" + center + " width=" + width);
             }
             else {
-              int pitch = midiNotes[(int)(((float)center/lineData.length)*midiNotes.length)];
+              int pitch = midiNotes[(int)( ((float)center/lineData.length)*midiNotes.length )];
               
               blobList.add(new blob(center, width, pitch));
               myBus.sendNoteOn(midiChannel, pitch, midiVelocity); // Send a Midi noteOn            
@@ -358,10 +359,10 @@ void draw() {
             }
           }
 
-        }
-        
+        } 
       }
-      else if (!counting && lineData[i] == black) {
+      // TODO: hack here
+      else if (!counting && lineData[i] == white) {
         // Start counting
         counting = true;
         noteStart = i;
