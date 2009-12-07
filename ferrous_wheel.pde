@@ -191,8 +191,6 @@ void setup() {
 
 // http://en.wikipedia.org/wiki/Bresenham%27s_line_algorithm
 void getLine(int x0, int y0, int x1, int y1) {
-  int rawLineData [];
-  
    int Dx = x1 - x0; 
    int Dy = y1 - y0;
    boolean steep = (abs(Dy) >= abs(Dx));
@@ -225,8 +223,7 @@ void getLine(int x0, int y0, int x1, int y1) {
    int y = y0;
    int xDraw, yDraw;
    
-   rawLineData = new int [ abs(x1 - x0)];
-   lineData = new int [ abs(x1 - x0) - 1];
+   lineData = new int [ abs(x1 - x0) ];
    
    int n = 0;
    for (int x = x0; x != x1; x += xstep) {	
@@ -239,8 +236,15 @@ void getLine(int x0, int y0, int x1, int y1) {
        }
        
        // Grab the data from the line
-       rawLineData[n] = pixels[xDraw*windowWidth + yDraw];
-       
+       color pixelA = pixels[xDraw*windowWidth + yDraw + 1];
+       color pixelB = pixels[(xDraw + 1)*windowWidth + yDraw];
+       color pixelC = pixels[xDraw*windowWidth + yDraw];
+       color pixelD = pixels[(xDraw + 1)*windowWidth + yDraw + 1];
+  
+       lineData[n] = color((red(pixelA) + red(pixelB) + red(pixelC) + red(pixelD))/4,
+                           (green(pixelA) + green(pixelB) + green(pixelC) + green(pixelD))/4,
+                           (blue(pixelA) + blue(pixelB) + blue(pixelC) + blue(pixelD))/4);
+ 
        // Draw the line in
        pixels[xDraw*windowWidth + yDraw] = color(255,0,0);
        
@@ -253,16 +257,6 @@ void getLine(int x0, int y0, int x1, int y1) {
        }
        
        n++;
-   }
-   
-   // Average two adjacent pixes to smooth the data?
-   for (int i = 0; i < lineData.length; i++) {
-     color dataA = rawLineData[i];
-     color dataB = rawLineData[i+1];
-  
-     lineData[i] = color((red(dataA) + red(dataB))/2,
-                         (green(dataA) + green(dataB))/2,
-                         (blue(dataA) + blue(dataB))/2);
    }
 }
 
