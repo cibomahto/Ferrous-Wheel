@@ -1,13 +1,21 @@
 /**
  * Ferrous Wheel
  * By Matt Mets
- * Sponsored by the Children's Museum of Pittsburgh 
+ * Sponsored by the Children's Museum of Pittsburgh 2009
+ *
+ * Feb 2013: Modified a bit by Gregory Witt of said Museum
+ * to accomodate a few years worth of changes to Processing,
+ * some new hardware, and a different OS (Windows) (sorry).  
+ * See "windows_notes/notes.txt" for installation details.
+ * 
  */
-
+ 
 // Libraries
 import codeanticode.gsvideo.*;    // GSVideo for motion capture
 import themidibus.*;              // MIDI Bus for output
 import proxml.*;                  // XML settings file
+import java.io.*;
+import java.util.*;
 
 // Constants
 int windowHeight = 240;
@@ -70,19 +78,27 @@ class blob {
   boolean current;
 }
 
+PrintWriter appendWriter(String filename) {
+    try {
+      File file = saveFile(filename);
+      OutputStream output = new FileOutputStream(file, true);
+      return createWriter(output);
+    } 
+    catch (Exception e) {
+      e.printStackTrace();
+      throw new RuntimeException("Couldn't create a writer for " +
+      filename);
+    }
+} 
 
 // Log a message to both the console and a file
 void log(String message) {
   println(message);
   
-  try {
-    FileWriter file = new FileWriter(logFileName, true);
-    file.write(millis() + " " + message + "\n");
-    file.close();
-  }
-  catch (Exception e) {
-    println("Error opening log file!");
-  }
+  PrintWriter file = appendWriter(logFileName);
+  file.print(millis() + " " + message + "\n");
+  file.flush();
+  file.close();
 }
 
 
@@ -150,7 +166,7 @@ void writeSettings(){
 
 void setup() {
   // Construct a name for the current log file
-  logFileName = "/home/ferrous/Desktop/logs/"
+  logFileName = "logs/"
                 + year() + "." + month() + "." + day()
                 + "." +hour() + ":" + minute() + ".txt";
   
@@ -167,18 +183,22 @@ void setup() {
   // Uses the default video input, see the reference if this causes an error
   // For the installation, the on-board camera is disabled in the BIOS so it can't
   // get in the way.
-  video = new GSCapture(this, width, height, 24);
+  video = new GSCapture(this, width, height); // was ,24 fps but my camera no support
+  video.start();
   
   // Calculate the total number of pixels on the screen
   numPixels = video.width * video.height;
 
-  // Choose the first MIDI device that is available
-  // This isn't 'right' but it should work as long as VirMIDI shows up first in the list.
-  String midiDevice = MidiBus.availableInputs()[0];
-  log("MIDI device=\"" + midiDevice + "\"");
+  // List available MIDI devices, use no input and loopMIDI for output.
+  // This isn't 'right' but it should work as long as loopMIDI shows up as #3 in the list.
+  MidiBus.list();
+  myBus = new MidiBus(this, -1, 3); // Create a new MIDI device  
   
-  myBus = new MidiBus(this, midiDevice, midiDevice); // Create a new MIDI device  
-  
+  // Tell me you're working
+  myBus.sendNoteOn(midiChannel, 64, midiVelocity); // Send a Midi noteOn            
+  delay(200);
+  myBus.sendNoteOff(midiChannel, 64, midiVelocity); // Send a Midi noteOff            
+
   //  using-the-mousewheel-scrollwheel-in-processing taken from:
   //  http://processinghacks.com/hacks:using-the-mousewheel-scrollwheel-in-processing
   //  @author Rick Companje

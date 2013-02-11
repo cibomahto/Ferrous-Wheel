@@ -1,0 +1,14 @@
+Installed following 3 programs:
+
+1. loopmidi - this provides a pipe for connecting processing to zynaddsubfx
+
+2. zynaddsubfx - a synth
+	
+I was unable to load the required instrument "Fantasy Bell" using the -L command line argument.
+workaround: made a settings file, "fantasy_bell.xmz" in the zynaddsubfx program directory, which is loaded with the -l command line argument (see desktop shortcut)
+
+3. autohotkey - used to send a Ctrl-R to processing so it will run the ferrous wheel program.
+
+	(Yes, I tried to export an application but no luck- Maybe something with gsvideo?)
+
+
